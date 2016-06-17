@@ -820,6 +820,58 @@ There is also a special exception :class:`cast_error` that is thrown by
 :func:`handle::call` when the input arguments cannot be converted to Python
 objects.
 
+Registering custom exception translators
+========================================
+
+If the default exception conversion described above is not sufficient, the
+additional header file :file:`pybind11/exception_translator.h` provides
+support for registering custom exception translators.
+
+The function ``pybind11::register_exception_translator(translator)`` takes
+any callable (e.g. lambda, ``std::bind`` wrapped function, or function object) with
+the following call signature: ``bool (std::exception_ptr)``.
+
+When a C++ exception is thrown, registered exception translators are tried
+in reverse order of registration (i.e. the last registered translator gets
+a first shot at handling the exception).
+
+Inside the translator ``std::rethrow_exception`` should be used, within
+a try block, to re-throw the exception. A catch clause can then use
+``PyErr_SetString`` or ``PyErr_SetObject`` to set a custom Python exception
+as demonstrated in :file:`example18.cpp``. Multiple exceptions can be handled
+by a single translator.
+
+The translator should return ``true`` if it was able to handle the exception
+or ``false`` if it was not (in which case the next translator gets a chance).
+Alternatively the translator can throw a new exception which is then passed
+up the chain.
+
+An example thus looks like:
+
+.. code-block:: cpp
+
+    py::register_exception_translator([](std::exception_ptr p) -> bool { 
+        try {
+            if (p) {
+                std::rethrow_exception(p);
+            }   
+        } catch (const MyCustomException &e) {
+            PyErr_SetString(PyExc_RuntimeError, e.what());
+            return true;
+        } catch (...) {}
+        return false;
+    });
+
+If none of the registered exception translators is able to handle the exception
+it is handled by the default converter as described in the previous section.
+
+.. note::
+
+    If an exception excapes one of the registered exception translators 
+    it will immediately go to the default exception handler, skipping
+    the other registered translators. Therefore every exception translator
+    should also catch all exceptions, using ``catch(...)`` and return ``false``.
+
 .. _opaque:
 
 Treating STL data structures as opaque objects

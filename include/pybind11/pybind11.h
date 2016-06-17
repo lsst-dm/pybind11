@@ -339,60 +339,73 @@ protected:
         handle parent = nargs > 0 ? PyTuple_GET_ITEM(args, 0) : nullptr,
                result = PYBIND11_TRY_NEXT_OVERLOAD;
         try {
-            for (; it != nullptr; it = it->next) {
-                tuple args_(args, true);
-                size_t kwargs_consumed = 0;
+            // Try registered user specified exception translators first
+            try {
+                for (; it != nullptr; it = it->next) {
+                    tuple args_(args, true);
+                    size_t kwargs_consumed = 0;
 
-                /* For each overload:
-                   1. If the required list of arguments is longer than the
-                      actually provided amount, create a copy of the argument
-                      list and fill in any available keyword/default arguments.
-                   2. Ensure that all keyword arguments were "consumed"
-                   3. Call the function call dispatcher (function_record::impl)
-                 */
-                size_t nargs_ = nargs;
-                if (nargs < it->args.size()) {
-                    nargs_ = it->args.size();
-                    args_ = tuple(nargs_);
-                    for (size_t i = 0; i < nargs; ++i) {
-                        handle item = PyTuple_GET_ITEM(args, i);
-                        PyTuple_SET_ITEM(args_.ptr(), i, item.inc_ref().ptr());
-                    }
+                    /* For each overload:
+                       1. If the required list of arguments is longer than the
+                          actually provided amount, create a copy of the argument
+                          list and fill in any available keyword/default arguments.
+                       2. Ensure that all keyword arguments were "consumed"
+                       3. Call the function call dispatcher (function_record::impl)
+                     */
+                    size_t nargs_ = nargs;
+                    if (nargs < it->args.size()) {
+                        nargs_ = it->args.size();
+                        args_ = tuple(nargs_);
+                        for (size_t i = 0; i < nargs; ++i) {
+                            handle item = PyTuple_GET_ITEM(args, i);
+                            PyTuple_SET_ITEM(args_.ptr(), i, item.inc_ref().ptr());
+                        }
 
-                    int arg_ctr = 0;
-                    for (auto const &it2 : it->args) {
-                        int index = arg_ctr++;
-                        if (PyTuple_GET_ITEM(args_.ptr(), index))
-                            continue;
+                        int arg_ctr = 0;
+                        for (auto const &it2 : it->args) {
+                            int index = arg_ctr++;
+                            if (PyTuple_GET_ITEM(args_.ptr(), index))
+                                continue;
 
-                        handle value;
-                        if (kwargs)
-                            value = PyDict_GetItemString(kwargs, it2.name);
+                            handle value;
+                            if (kwargs)
+                                value = PyDict_GetItemString(kwargs, it2.name);
 
-                        if (value)
-                            kwargs_consumed++;
-                        else if (it2.value)
-                            value = it2.value;
+                            if (value)
+                                kwargs_consumed++;
+                            else if (it2.value)
+                                value = it2.value;
 
-                        if (value) {
-                            PyTuple_SET_ITEM(args_.ptr(), index, value.inc_ref().ptr());
-                        } else {
-                            kwargs_consumed = (size_t) -1; /* definite failure */
-                            break;
+                            if (value) {
+                                PyTuple_SET_ITEM(args_.ptr(), index, value.inc_ref().ptr());
+                            } else {
+                                kwargs_consumed = (size_t) -1; /* definite failure */
+                                break;
+                            }
                         }
                     }
-                }
 
-                try {
-                    if ((kwargs_consumed == nkwargs || it->has_kwargs) &&
-                        (nargs_ == it->nargs || it->has_args))
-                        result = it->impl(it, args_, kwargs, parent);
-                } catch (cast_error &) {
-                    result = PYBIND11_TRY_NEXT_OVERLOAD;
-                }
+                    try {
+                        if ((kwargs_consumed == nkwargs || it->has_kwargs) &&
+                            (nargs_ == it->nargs || it->has_args))
+                            result = it->impl(it, args_, kwargs, parent);
+                    } catch (cast_error &) {
+                        result = PYBIND11_TRY_NEXT_OVERLOAD;
+                    }
 
-                if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
-                    break;
+                    if (result.ptr() != PYBIND11_TRY_NEXT_OVERLOAD)
+                        break;
+                }
+            } catch (const error_already_set &) {
+                return nullptr;
+            } catch (...) {
+                // Give any registered exception handler a chance first (in reverse order of registration)
+                auto &registered_exception_translators = pybind11::detail::get_internals().registered_exception_translators;
+                for (auto& translator : registered_exception_translators) {
+                    if (translator(std::current_exception())) return nullptr;
+                }
+                // If we get here, delegate to standard exception handlers
+                throw; 
             }
         } catch (const error_already_set &)      {                                                 return nullptr;
         } catch (const index_error &e)           { PyErr_SetString(PyExc_IndexError,    e.what()); return nullptr;

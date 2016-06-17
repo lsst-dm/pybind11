@@ -1,0 +1,5 @@
+<class 'example.MyError'> this error should go to a custom type
+<type 'exceptions.RuntimeError'> this error should go to a standard Python exception
+<type 'exceptions.RuntimeError'> Caught an unknown exception!
+<class 'example.MyError'> this error is rethrown
+<type 'exceptions.RuntimeError'> this error should fall through to the standard handler

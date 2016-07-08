@@ -99,14 +99,17 @@ void throws_derived2() {
 }
 
 void init_ex19(py::module &m) {
-    py::class_<MyException> cls(m, "MyException");
+    // Allow inheritance from Python Exception type
+    py::register_python_exception();
+
+    py::class_<MyException> cls(m, "MyException", py::base<py::exception>());
 
     cls.def(py::init<const char *>())
         .def("what", &MyException::what)
         .def("__repr__", &MyException::what)
         .def("__str__", &MyException::what); // Needed for Exception inheritance to work
 
-    py::class_<MyBaseException> clsMyBaseException(m, "MyBaseException");
+    py::class_<MyBaseException> clsMyBaseException(m, "MyBaseException", py::base<py::exception>());
 
     clsMyBaseException.def(py::init<const char *>())
         .def("what", &MyBaseException::what)

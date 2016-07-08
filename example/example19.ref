@@ -1,5 +1,16 @@
-Can we catch a MyException?
+Exception type bases:
+(<class 'example.MyException'>, <type 'exceptions.Exception'>, <type 'exceptions.BaseException'>, <type 'object'>)
+(<class 'example.MyBaseException'>, <type 'exceptions.Exception'>, <type 'exceptions.BaseException'>, <type 'object'>)
+(<class 'example.MyDerivedException1'>, <class 'example.MyBaseException'>, <type 'exceptions.Exception'>, <type 'exceptions.BaseException'>, <type 'object'>)
+
+Can we catch a MyException as it's own type?
 <class 'example.MyException'> this error should go to a custom type
+
+Can we catch a MyException through Python Exception?
+<class 'example.MyException'> this error should go to a custom type
+
+Can we raise a MyException in Python?
+<class 'example.MyException'> raised from Python
 
 Can we translate to standard Python exceptions?
 <type 'exceptions.RuntimeError'> this error should go to a standard Python exception
@@ -13,13 +24,29 @@ Can we delegate to another handler by rethrowing?
 Can we fall-through to the default handler?
 <type 'exceptions.RuntimeError'> this error should fall through to the standard handler
 
-Can we catch a MyBaseException?
+Can we catch a MyBaseException as it's own type?
 caught MyBaseException
 <class 'example.MyBaseException'> base
 
-Can we catch a MyDerivedException1?
+Can we catch a MyBaseException through Python Exception?
+caught MyBaseException
+<class 'example.MyBaseException'> base
+
+Can we catch a MyDerivedException1 as it's own type?
 caught MyDerivedException1 derived 1
 <class 'example.MyDerivedException1'> derived 1
+
+Can we catch a MyDerivedException1 through Python Exception?
+caught MyDerivedException1 derived 1
+<class 'example.MyDerivedException1'> derived 1
+
+Can we catch a MyDerivedException1 through MyBaseException?
+caught MyDerivedException1 derived 1
+<class 'example.MyDerivedException1'> derived 1
+
+Can we catch a MyDerivedException2 through Python Exception?
+caught MyBaseException
+<class 'example.MyBaseException'> derived 2
 
 Can we catch a MyDerivedException2 through MyBaseException?
 caught MyBaseException

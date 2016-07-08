@@ -239,6 +239,9 @@ inline std::string error_string();
 /// Core part of the 'instance' type which POD (needed to be able to use 'offsetof')
 template <typename type> struct instance_essentials {
     PyObject_HEAD
+    PyObject *dict;     // )
+    PyObject *args;     // > Required only for types derived from Python Exception
+    PyObject *message;  // )
     type *value;
     PyObject *parent;
     PyObject *weakrefs;

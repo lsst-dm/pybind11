@@ -15,6 +15,20 @@
 
 NAMESPACE_BEGIN(pybind11)
 
+struct exception {};
+
+void register_python_exception() {
+    auto tindex = std::type_index(typeid(exception));
+    auto &internals = detail::get_internals();
+    if (internals.registered_types_cpp.find(tindex) == internals.registered_types_cpp.end()) {
+        detail::type_info *tinfo = new detail::type_info();
+        tinfo->type = (PyTypeObject *) PyExc_Exception;
+        tinfo->type_size = sizeof(exception);
+        tinfo->init_holder = nullptr;
+        internals.registered_types_cpp[tindex] = tinfo;
+    }
+}
+
 template <typename ExceptionTranslator>
 void register_exception_translator(ExceptionTranslator&& translator) {
     detail::get_internals().registered_exception_translators.push_front(std::forward<ExceptionTranslator>(translator));

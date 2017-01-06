@@ -53,3 +53,14 @@ def test_isinstance():
     objects = [tuple(), dict(), Pet("Polly", "parrot")] + [Dog("Molly")] * 4
     expected = (True, True, True, True, True, False, False)
     assert test_isinstance(objects) == expected
+
+def test_mro():
+    from pybind11_tests import MroBaseA, MroBaseB, MroDerived
+
+    d = MroDerived()
+#    assert d.a() == "A"
+    assert d.b() == "B"
+    assert MroDerived.me() == "MroDerived"
+    assert MroDerived.bla2 == 4
+    assert MroBaseB.me() == "MroBaseB"
+    assert MroBaseB.bla == 3

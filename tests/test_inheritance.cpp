@@ -49,6 +49,32 @@ struct BaseClass { virtual ~BaseClass() {} };
 struct DerivedClass1 : BaseClass { };
 struct DerivedClass2 : BaseClass { };
 
+class MroBaseA {
+public:
+    std::string a() { return "A"; };
+};
+class MroBaseB {
+public:
+    std::string b() { return "B"; };
+
+    static std::string me() {
+        return "MroBaseB";
+    }
+
+    static int bla;
+};
+class MroDerived : public MroBaseA, public MroBaseB {
+public:
+    static std::string me() {
+        return "MroDerived";
+    }
+
+    static int bla2;
+};
+
+int MroBaseB::bla = 3;
+int MroDerived::bla2 = 4;
+
 test_initializer inheritance([](py::module &m) {
     py::class_<Pet> pet_class(m, "Pet");
     pet_class
@@ -97,4 +123,15 @@ test_initializer inheritance([](py::module &m) {
             py::isinstance<Unregistered>(l[6])
         );
     });
+
+    py::class_<MroBaseA>(m, "MroBaseA")
+        .def("a", &MroBaseA::a);
+    py::class_<MroBaseB>(m, "MroBaseB", py::metaclass())
+        .def("b", &MroBaseB::b)
+        .def_static("me", &MroBaseB::me)
+        .def_readonly_static("bla", &MroBaseB::bla);
+    py::class_<MroDerived, MroBaseA, MroBaseB>(m, "MroDerived", py::metaclass())
+        .def(py::init<>())
+        .def_static("me", &MroDerived::me)
+        .def_readonly_static("bla2", &MroDerived::bla2);
 });
